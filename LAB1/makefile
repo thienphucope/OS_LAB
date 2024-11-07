@@ -15,5 +15,5 @@ calc_logic.o: calc_logic.c calc_logic.h
 
 clean:
 	rm -f *.o calc
-main: calc.c calc_logic.c
+direct: calc.c calc_logic.c
 	gcc calc.c calc_logic.c -o calc 
