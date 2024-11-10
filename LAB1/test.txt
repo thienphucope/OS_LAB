@@ -1,0 +1,11 @@
+1 + 1
+ANS - 1 
+ANS * 10
+ANS / 2
+ANS % 4
+ANS / 0
+ANS @ 8
+HIST
+EXIT
+ 
+

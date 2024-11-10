@@ -12,13 +12,17 @@ int main() {
         perror("mmap failed");
         return 1;
     }
+    pid_t pid = fork();
 
-    // Ghi dữ liệu vào vùng bộ nhớ
-    strcpy(shared_mem, "Hello from the other side!");
-
-    // Đọc dữ liệu từ vùng bộ nhớ
-    printf("Data in shared memory: %s\n", shared_mem);
-
+   if (pid == 0)
+   {
+	   printf("%s\n", (char*) shared_mem);
+   }
+   else
+   {
+	   strcpy(shared_mem, "Hello from the other side");
+   }
+ 
     // Giải phóng vùng bộ nhớ
     munmap(shared_mem, size);
     return 0;

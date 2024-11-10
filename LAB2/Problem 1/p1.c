@@ -36,6 +36,7 @@ int main() {
 
     // Tạo vùng nhớ chung
     shmid = shmget(SHM_KEY, 2 * sizeof(float), IPC_CREAT | 0666);
+
     if (shmid < 0) {
         perror("shmget failed");
         exit(EXIT_FAILURE);
@@ -65,16 +66,24 @@ int main() {
         shmdt(shared_memory);
         exit(0);
     }
-
+ 
     // Đợi cả hai tiến trình con hoàn thành
     wait(NULL);
     wait(NULL);
+ 
+    float* result = (float*) shmat(shmid, NULL, 0);
+    if (result == (float*)-1) {
+        perror("shmat failed");
+        exit(EXIT_FAILURE);
+    }
+
 
     // Tiến trình cha thu thập kết quả
-    printf("Average rating from file 1: %.2f\n", shared_memory[0]);
-    printf("Average rating from file 2: %.2f\n", shared_memory[1]);
+    printf("Average rating from file 1: %.2f\n", result[0]);
+    printf("Average rating from file 2: %.2f\n", result[1]);
 
     // Hủy vùng nhớ chung
+    shmdt(result);
     shmdt(shared_memory);
     shmctl(shmid, IPC_RMID, NULL);
 

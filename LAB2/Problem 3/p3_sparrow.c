@@ -50,22 +50,22 @@ int main() {
     pthread_t Sparrow, Eagle;
 
     pthread_create(&Sparrow, NULL, send_message, &msg_id);
-    pthread_create(&Eagle, NULL, receive_message, &msg_id);
+   // pthread_create(&Eagle, NULL, receive_message, &msg_id);
 
     pthread_join(Sparrow, NULL);
-    pthread_join(Eagle, NULL);
-
-    
+    //pthread_join(Eagle, NULL);
+    pthread_cancel(Sparrow);
+    msgctl(msg_id, IPC_RMID, NULL);
     //Tra loi
     printf("Eagle Calls Sparrow\n");
     msg_id = msgget(MSG_QUEUE_KEY, 0666 | IPC_CREAT);
 
-    pthread_create(&Eagle, NULL, send_message, &msg_id);
+    //pthread_create(&Eagle, NULL, send_message, &msg_id);
     pthread_create(&Sparrow, NULL, receive_message, &msg_id);
 
-    pthread_join(Eagle, NULL);
+    //pthread_join(Eagle, NULL);
     pthread_join(Sparrow, NULL);
-
+    pthread_cancel(Sparrow);
     msgctl(msg_id, IPC_RMID, NULL);
     return 0;
 }

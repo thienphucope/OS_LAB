@@ -23,7 +23,7 @@ int main() {
         sscanf(expression, "%s %s %s", splited[0], splited[1], splited[2]);
 
         if ((strcmp(splited[1], "+") != 0 && strcmp(splited[1], "-") != 0 &&
-             strcmp(splited[1], "*") != 0 && strcmp(splited[1], "/") != 0)) {
+             strcmp(splited[1], "*") != 0 && strcmp(splited[1], "/") != 0) && strcmp(splited[1], "%")) {
             printf("SYNTAX ERROR\n");
             continue;
         }
@@ -55,7 +55,13 @@ int main() {
             } else {
                 ANS = divide(a, b);
             }
-        }
+        } else if (strcmp(splited[1], "%") == 0) {
+		if (a != (int)a || b != (int)b) {
+			printf("MATH ERROR\n");
+			continue;
+		}
+		else ANS = modulo(a,b);
+		}
 
         if (ANS == (int)ANS) {
             printf("%d\n", (int)ANS);
