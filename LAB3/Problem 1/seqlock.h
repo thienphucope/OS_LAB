@@ -56,7 +56,7 @@ static inline void pthread_seqlock_rdunlock(pthread_seqlock_t *rw)
 {
     pthread_mutex_lock(&rw->mutex);
     rw->count_readers--;
-    rw->sequence++; 
+     
     pthread_mutex_unlock(&rw->mutex);
 }
 

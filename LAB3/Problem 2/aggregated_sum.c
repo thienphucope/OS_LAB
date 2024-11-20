@@ -15,7 +15,8 @@ int generate_array_data(int *buf, int array_size, int seednum) {
     srand(seednum);  // Initialize the random number generator with the given seed
 
     for (int i = 0; i < array_size; i++) {
-        buf[i] = rand();  // Generate a random integer and store it in the buffer
+        buf[i] = rand()/1000;
+        printf("%d ", buf[i]);	// Generate a random integer and store it in the buffer
     }
 
     return 0;  // Returning 0 to indicate success
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]) {
 
     // Generate the array with the provided seed
     generate_array_data(array, arrsz, seednum);
-
+    
     pthread_t threads[tnum];
     struct range thread_ranges[tnum];
     int range_size = arrsz / tnum;
