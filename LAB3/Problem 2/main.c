@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> /* for getopt */
-
+#include <pthread.h>
 #include "utils.h"
 #include <errno.h>
 #include <limits.h>
+#include <sys/wait.h>
 
 /** process command line argument.
  *  values are made available through the 'conf' struct.
@@ -35,7 +36,7 @@ extern int generate_array_data (int* buf, int arraysize, int seednum);
 /** display help */
 extern void help (int xcode);
 
-void* sum_worker (struct _range idx_range);
+void* sum_worker (void *idx_range);
 long validate_sum(int arraysize);
 
 /* Global sum buffer */
@@ -43,24 +44,25 @@ long sumbuf = 0;
 int* shrdarrbuf;
 pthread_mutex_t mtx;
 
+void* sum_worker (void *idx_range) {
+   
+   struct _range *range = (struct _range *) idx_range;
+   //printf("In worker from %d to %d\n", idx_range.start, idx_range.end);
 
-void* sum_worker(struct _range idx_range) {
-    long local_sum = 0; // Biến cục bộ để lưu tổng của phạm vi
-    int i;
+    long long sum = 0;
 
-    // Tính tổng trong phạm vi được chỉ định
-    for (i = idx_range.start; i <= idx_range.end; i++) {
-        local_sum += shrdarrbuf[i];
+    for (int i = range->start; i <= range->end; i++) {
+        sum += shrdarrbuf[i];
     }
 
-    // Khóa mutex trước khi cộng vào biến toàn cục
     pthread_mutex_lock(&mtx);
-    sumbuf += local_sum;
+    sumbuf += sum;
     pthread_mutex_unlock(&mtx);
 
-    return NULL; // Không trả về gì, do đây là luồng
+    return NULL;
+   return 0;
+		
 }
-
 
 int main(int argc, char * argv[]) {
    int i, arrsz, tnum, seednum;
@@ -127,15 +129,14 @@ int main(int argc, char * argv[]) {
    tid = malloc (appconf.tnum * sizeof(pthread_t));
 
    for (i=0; i < appconf.tnum; i++)
-      pthread_create(&tid[i], NULL, sum_worker, (
-                     struct _range) (thread_idx_range[i]));
+      pthread_create(&tid[i], NULL, sum_worker, (void *) &thread_idx_range[i]);
    for (i=0; i < appconf.tnum; i++)
       pthread_join(tid[i], NULL);
    fflush(stdout);
 	
    printf("%s gives sum result %ld\n", PACKAGE, sumbuf);
 
-   waitpid(pid);
+   waitpid(pid, NULL, 0);
       exit(0);
 }
 
