@@ -1,88 +1,102 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 
+#define MAX_THREADS 16
+
+// Global variables
+int *array;               // The array of integers
+int array_size;           // The size of the array
+int total_sum = 0;        // The total sum of the array (shared resource)
+pthread_mutex_t sum_lock; // Mutex to protect the shared resource (total_sum)
+
+// Structure to define the range each thread will process
 struct range {
     int start;
     int end;
 };
 
-int *array;           // The array of integers to sum
-int *sumbuff;         // Buffer to hold partial sums for each thread
-int arrsz, tnum;      // Array size and number of threads
-
+// Function to generate random array values
 int generate_array_data(int *buf, int array_size, int seednum) {
-    srand(seednum);  // Initialize the random number generator with the given seed
-
+    srand(seednum);
     for (int i = 0; i < array_size; i++) {
-        buf[i] = rand()/1000;
-        printf("%d ", buf[i]);	// Generate a random integer and store it in the buffer
+        buf[i] = rand() % 100;  // Generate random values between 0 and 99
     }
-
-    return 0;  // Returning 0 to indicate success
+    return 0;
 }
 
-void* sum_worker(void *arg) {
-    struct range *idx_range = (struct range*) arg;
-    int sum = 0;
-    
-    // Calculate sum in the specified range
-    for (int i = idx_range->start; i <= idx_range->end; i++) {
-        sum += array[i];
+// Sum worker function to be run by each thread
+void* sum_worker(void* arg) {
+    struct range *r = (struct range*)arg;
+    int local_sum = 0;
+
+    // Calculate sum for the given range
+    for (int i = r->start; i <= r->end; i++) {
+        local_sum += array[i];
     }
-    
-    // Store the sum in the global sum buffer
-    sumbuff[idx_range->start / (arrsz / tnum)] = sum;
-    
+
+    // Lock the shared resource (total_sum) before updating it
+    pthread_mutex_lock(&sum_lock);
+    total_sum += local_sum;
+    pthread_mutex_unlock(&sum_lock);
+
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        fprintf(stderr, "Usage: %s arrsz tnum [seednum]\n", argv[0]);
-        return 1;
+        printf("Usage: %s <array_size> <num_threads> [seednum]\n", argv[0]);
+        return -1;
     }
-    
-    arrsz = atoi(argv[1]);
-    tnum = atoi(argv[2]);
+
+    // Parse command line arguments
+    array_size = atoi(argv[1]);
+    int num_threads = atoi(argv[2]);
     int seednum = (argc > 3) ? atoi(argv[3]) : 0;
 
-    // Allocate memory for the array and sum buffer
-    array = (int*)malloc(arrsz * sizeof(int));
-    sumbuff = (int*)malloc(tnum * sizeof(int));
-
-    // Generate the array with the provided seed
-    generate_array_data(array, arrsz, seednum);
-    
-    pthread_t threads[tnum];
-    struct range thread_ranges[tnum];
-    int range_size = arrsz / tnum;
-
-    // Initialize each thread's range
-    for (int i = 0; i < tnum; i++) {
-        thread_ranges[i].start = i * range_size;
-        thread_ranges[i].end = (i == tnum - 1) ? (arrsz - 1) : ((i + 1) * range_size - 1);
-        
-        // Create each thread
-        pthread_create(&threads[i], NULL, sum_worker, &thread_ranges[i]);
+    // Validate the number of threads
+    if (num_threads <= 0 || num_threads > MAX_THREADS) {
+        printf("Error: Number of threads should be between 1 and %d.\n", MAX_THREADS);
+        return -1;
     }
 
-    // Join all threads
-    for (int i = 0; i < tnum; i++) {
+    // Allocate memory for the array
+    array = (int*)malloc(array_size * sizeof(int));
+
+    // Initialize the mutex
+    pthread_mutex_init(&sum_lock, NULL);
+
+    // Generate random array data
+    generate_array_data(array, array_size, seednum);
+
+    // Create threads and assign ranges
+    pthread_t threads[num_threads];
+    struct range thread_ranges[num_threads];
+
+    int range_size = array_size / num_threads;
+    for (int i = 0; i < num_threads; i++) {
+        thread_ranges[i].start = i * range_size;
+        thread_ranges[i].end = (i == num_threads - 1) ? (array_size - 1) : ((i + 1) * range_size - 1);
+        
+        // Create the thread to compute sum for the range
+        if (pthread_create(&threads[i], NULL, sum_worker, &thread_ranges[i]) != 0) {
+            perror("Failed to create thread");
+            return -1;
+        }
+    }
+
+    // Wait for all threads to finish
+    for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    // Aggregate all partial sums
-    int total_sum = 0;
-    for (int i = 0; i < tnum; i++) {
-        total_sum += sumbuff[i];
-    }
+    // Print the total sum
+    printf("Total sum of array = %d\n", total_sum);
 
-    printf("Total sum: %d\n", total_sum);
-
-    // Free allocated memory
+    // Cleanup
+    pthread_mutex_destroy(&sum_lock);
     free(array);
-    free(sumbuff);
 
     return 0;
 }
