@@ -1,100 +1,85 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <string.h>
-#include <semaphore.h>
 
 #define MAX_LOG_LENGTH 10
-#define MAX_BUFFER_SLOT 6
-#define MAX_LOOPS 30
+#define MAX_BUFFER_SLOT 5
 
-char logbuf[MAX_BUFFER_SLOT][MAX_LOG_LENGTH];
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex để đảm bảo an toàn luồng
-sem_t empty; // Semaphore để theo dõi các slot trống trong bộ đệm
-sem_t full;  // Semaphore để theo dõi các slot đã đầy trong bộ đệm
-int count;
+// Shared log buffer
+char *logbuf[MAX_BUFFER_SLOT];
+int buffer_count = 0;  // Number of entries in the buffer
 
-struct _args {
-    unsigned int interval;
-};
+// Mutex and condition variables for synchronization
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_not_full = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_not_empty = PTHREAD_COND_INITIALIZER;
 
-void flushlog();
+// Function to write log into the buffer
+int wrlog(char *new_data) {
+    pthread_mutex_lock(&mutex);
 
-void *wrlog(void *data) {
+    // Wait if buffer is full
+    while (buffer_count == MAX_BUFFER_SLOT) {
+        pthread_cond_wait(&cond_not_full, &mutex);
+    }
 
-    sem_wait(&empty); // Chờ cho đến khi có một slot trống trong bộ đệm
+    // Add the new log to the buffer
+    logbuf[buffer_count] = strdup(new_data);
+    buffer_count++;
 
-    pthread_mutex_lock(&mutex); 
-    char str[MAX_LOG_LENGTH];
-    int id = *(int *)data;
-    usleep(20);
-    sprintf(str, "%d", id);
-    strcpy(logbuf[count], str);
-    count++; 
+    pthread_cond_signal(&cond_not_empty); // Signal that buffer is not empty
+    pthread_mutex_unlock(&mutex);
+    return 0;
+}
 
-    pthread_mutex_unlock(&mutex); 
+// Function to flush the buffer
+int flushlog() {
+    pthread_mutex_lock(&mutex);
 
-    if ( count == MAX_BUFFER_SLOT ) sem_post(&full);
+    // Wait if buffer is empty
+    while (buffer_count == 0) {
+        pthread_cond_wait(&cond_not_empty, &mutex);
+    }
 
+    // Print and clear the buffer
+    printf("Flushing log:\n");
+    for (int i = 0; i < buffer_count; i++) {
+        printf("Slot %d: %s\n", i, logbuf[i]);
+        free(logbuf[i]); // Free allocated memory
+        logbuf[i] = NULL;
+    }
+    buffer_count = 0;
+
+    pthread_cond_signal(&cond_not_full); // Signal that buffer is not full
+    pthread_mutex_unlock(&mutex);
+    return 0;
+}
+
+// Periodically flush log in a separate thread
+void *flush_thread(void *arg) {
+    while (1) {
+        sleep(5);  // Flush every 5 seconds
+        flushlog();
+    }
     return NULL;
 }
 
-void flushlog() {
-    int i;
-    char nullval[MAX_LOG_LENGTH];
-
-    sem_wait(&full); // Chờ cho đến khi có một slot đã đầy trong bộ đệm
-
-    //printf("flushlog()\n");
-    sprintf(nullval, "%d", -1);
-    for (i = 0; i < count; i++) {
-        printf("Slot %i: %s\n", i, logbuf[i]);
-        strcpy(logbuf[i], nullval);
-    }
-
-    fflush(stdout);
-
-    while ( count != 0) {
-      sem_post(&empty);
-      count--;
-    }
-}
-
-void *timer_start(void *args)
-{
-   while (1)
-   {
-      flushlog();
-      /*Waiting until the next timeout */
-      usleep(((struct _args *) args)->interval);
-   }
-}
-
 int main() {
-    int i;
-    count = 0;
-    pthread_t tid[MAX_LOOPS];
-    pthread_t lgrid;
-    int id[MAX_LOOPS];
+    // Initialize the flush thread
+    pthread_t tid;
+    pthread_create(&tid, NULL, flush_thread, NULL);
 
-    struct _args args;
-    args.interval = 500e3; // Interval for flushing logs
-
-    sem_init(&empty, 0, MAX_BUFFER_SLOT); 
-    sem_init(&full, 0, 0); 
-
-    pthread_create(&lgrid, NULL, &timer_start, (void *)&args);
-
-    for (i = 0; i < MAX_LOOPS; i++) {
-        id[i] = i;
-        pthread_create(&tid[i], NULL, wrlog, (void *)&id[i]);
+    // Simulate multiple threads writing to the log
+    for (int i = 0; i < 30; i++) {
+        char log[MAX_LOG_LENGTH];
+        snprintf(log, sizeof(log), "%d", i);
+        wrlog(log);
+        usleep(500000); // Simulate delay between writes (0.5s)
     }
 
-    for (i = 0; i < MAX_LOOPS; i++)
-        pthread_join(tid[i], NULL);
-
-    sleep(5);
-
-
+    // Wait for the flush thread to finish (it won't in this example)
+    pthread_join(tid, NULL);
     return 0;
 }
