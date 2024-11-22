@@ -4,7 +4,7 @@
 
 // Global variables
 long long int total_points = 10000000; // Total number of points
-int num_threads = 4;                  // Number of threads
+int num_threads = 16;                  // Number of threads
 long long int *circle_counts;         // Array to store circle counts for each thread
 
 // Thread function to calculate points inside the circle

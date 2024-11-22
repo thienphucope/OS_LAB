@@ -99,14 +99,14 @@ double run_simulation(long long num_points, int num_threads) {
 
 int main() {
     srand(time(NULL));
-    long long num_points = 10000000;  // 10M points
+    long long num_points = 100000000;  // 10M points
     
     // Run with different thread counts and measure speedup
     double base_time = run_simulation(num_points, 1);  // Base time with 1 thread
     
     printf("\nSpeedup Analysis:\n");
     // Test with different thread counts (2 to 32 threads)
-    for (int threads = 2; threads <= 32; threads *= 2) {
+    for (int threads = 2; threads <= 256; threads *= 2) {
         double time = run_simulation(num_points, threads);
         double speedup = base_time / time;
         printf("Threads: %d, Speedup: %.2fx\n", threads, speedup);
