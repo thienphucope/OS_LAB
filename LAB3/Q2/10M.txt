@@ -1,0 +1,19 @@
+hreads: 1, Points: 10000000, Pi: 3.141785, Time: 0.237846 seconds
+
+Speedup Analysis:
+Threads: 2, Points: 10000000, Pi: 3.141343, Time: 0.614588 seconds
+Threads: 2, Speedup: 0.39x
+Threads: 4, Points: 10000000, Pi: 3.141366, Time: 0.549512 seconds
+Threads: 4, Speedup: 0.43x
+Threads: 8, Points: 10000000, Pi: 3.140815, Time: 0.575784 seconds
+Threads: 8, Speedup: 0.41x
+Threads: 16, Points: 10000000, Pi: 3.141256, Time: 0.457737 seconds
+Threads: 16, Speedup: 0.52x
+Threads: 32, Points: 10000000, Pi: 3.141918, Time: 0.373656 seconds
+Threads: 32, Speedup: 0.64x
+Threads: 64, Points: 10000000, Pi: 3.142417, Time: 0.334781 seconds
+Threads: 64, Speedup: 0.71x
+Threads: 128, Points: 10000000, Pi: 3.141280, Time: 0.346459 seconds
+Threads: 128, Speedup: 0.69x
+Threads: 256, Points: 10000000, Pi: 3.141326, Time: 0.471180 seconds
+Threads: 256, Speedup: 0.50x

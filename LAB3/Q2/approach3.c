@@ -99,7 +99,7 @@ double run_simulation(long long num_points, int num_threads) {
 
 int main() {
     srand(time(NULL));
-    long long num_points = 100000000;  // 10M points
+    long long num_points = 1000000000;  // 10M points
     
     // Run with different thread counts and measure speedup
     double base_time = run_simulation(num_points, 1);  // Base time with 1 thread
