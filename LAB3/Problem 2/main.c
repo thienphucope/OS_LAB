@@ -44,25 +44,23 @@ long sumbuf = 0;
 int* shrdarrbuf;
 pthread_mutex_t mtx;
 
-void* sum_worker (void *idx_range) {
-   
-   struct _range *range = (struct _range *) idx_range;
-   //printf("In worker from %d to %d\n", idx_range.start, idx_range.end);
+void* sum_worker(void *idx_range) {
+    struct _range* range = (struct _range*) idx_range;
+    long partial_sum = 0;
 
-    long long sum = 0;
-
+    // Tính tổng phần của mảng theo phạm vi được giao
     for (int i = range->start; i <= range->end; i++) {
-        sum += shrdarrbuf[i];
+        partial_sum += shrdarrbuf[i];
     }
 
+    // Cập nhật tổng toàn cục một cách an toàn bằng cách khóa mutex
     pthread_mutex_lock(&mtx);
-    sumbuf += sum;
+    sumbuf += partial_sum;
     pthread_mutex_unlock(&mtx);
 
-    return NULL;
-   return 0;
-		
+    pthread_exit(NULL);  // Kết thúc luồng
 }
+
 
 int main(int argc, char * argv[]) {
    int i, arrsz, tnum, seednum;
